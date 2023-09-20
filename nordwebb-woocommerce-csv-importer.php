@@ -1,25 +1,27 @@
 <?php
 /**
- * Plugin Name: Nordwebb Woocommerce Csv Importer
- * Description: Plugin tailored for Nordwebbs needs to upload products from a specific CSV format.
+ * Plugin Name: Nordwebb WooCommerce CSV Importer
+ * Description: A plugin to help Nordwebb upload products from a CSV file to WooCommerce.
  * Version: 1.0
- * Author: Your Name
+ * Author: Nordwebb
  */
 
-// Add a submenu in the WooCommerce section
-add_action('admin_menu', 'my_csv_importer_menu');
-function my_csv_importer_menu() {
-    add_submenu_page('woocommerce', 'CSV Importer', 'CSV Importer', 'manage_options', 'my-csv-importer', 'my_csv_importer_page');
+// Add a submenu in the WooCommerce section for the importer
+add_action('admin_menu', 'nordwebb_csv_importer_menu');
+
+function nordwebb_csv_importer_menu() {
+    add_submenu_page('woocommerce', 'Nordwebb CSV Importer', 'CSV Importer', 'manage_options', 'nordwebb-csv-importer', 'nordwebb_csv_importer_page');
 }
 
-// Display the upload form
-function my_csv_importer_page() {
-    echo '<h2>WooCommerce CSV Importer</h2>';
+function nordwebb_csv_importer_page() {
+    echo '<h2>Nordwebb WooCommerce CSV Importer</h2>';
     
     // Check if form is submitted and process the uploaded file
     if(isset($_POST['submit']) && isset($_FILES['csv'])) {
         // TODO: Handle the CSV processing here
-        // Use functions like wc_get_product() and wp_insert_post() to add products
+        
+        // For now, just display a message indicating the file was received
+        echo '<p>CSV file received. Processing will be implemented here.</p>';
     }
     
     // Display the form
