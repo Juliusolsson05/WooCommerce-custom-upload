@@ -1,4 +1,8 @@
 <?php
+
+
+include_once 'nordwebb-csv-importer.php';
+
 function nordwebb_csv_importer_page()
 {
     echo '<h2>Nordwebb WooCommerce CSV Importer</h2>';
@@ -8,6 +12,7 @@ function nordwebb_csv_importer_page()
         $uploaded_file_path = $_FILES['csv']['tmp_name'];
         $csv_data = array_map('str_getcsv', file($uploaded_file_path));
         update_option('nordwebb_csv_data', $csv_data);
+		update_option('nordwebb_csv_logs', []);
         nordwebb_log("Uploaded CSV with " . count($csv_data) . " rows");
     }
 
@@ -23,9 +28,16 @@ function nordwebb_csv_importer_page()
     echo '</div>';
     echo '<button onclick="startProcessing()">Start Processing</button>';
 
+    echo '<h3>Logs:</h3>';
+    echo '<ul id="nordwebb-logs"></ul>';
+
     // Include the JavaScript for AJAX processing
     echo '<script>
         function startProcessing() {
+
+            //splits the total rows in to chunks, each chunks represents 10 rows.
+            // This is to prevent the requests from timing out.
+
             var totalChunks = Math.ceil(' . count(get_option('nordwebb_csv_data', [])) . ' / 10);
             processChunk(1, totalChunks);
         }
@@ -36,28 +48,25 @@ function nordwebb_csv_importer_page()
                 current_chunk: currentChunk,
                 total_chunks: totalChunks
             }, function(response) {
-                var data = JSON.parse(response);  // Parse the JSON response
+                var data = JSON.parse(response);
                 var progress = data.progress;
                 var progressBar = document.getElementById("progress");
                 progressBar.style.width = progress + "%";
+                
+                // Display the logs
+                var logList = "";
+                for (var i = 0; i < data.logs.length; i++) {
+                    logList += "<li>" + data.logs[i] + "</li>";
+                }
+                jQuery("#nordwebb-logs").html(logList);  // Assuming that you have only one <ul> element for logs. If not, provide a specific ID or class.
+        
                 if (currentChunk < totalChunks) {
                     processChunk(currentChunk + 1, totalChunks);
                 } else {
                     alert("Upload completed!");
                 }
             });
-        }
-    </script>';
+        } </script>';
 
-    // Display logs
-    $logs = get_option('nordwebb_csv_logs', []);
-    if (!empty($logs)) {
-        echo '<h3>Logs:</h3>';
-        echo '<ul>';
-        foreach ($logs as $log) {
-            echo "<li>{$log}</li>";
-        }
-        echo '</ul>';
-    }
 }
 ?>
