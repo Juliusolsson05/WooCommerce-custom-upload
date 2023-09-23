@@ -34,33 +34,52 @@ function nordwebb_process_csv_chunk()
         include_once(WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-product-factory.php');
     }
 	
-	nordwebb_log("test");
-
     // Placeholder for mapping original variable product IDs from CSV to actual product IDs in WordPress
     $id_mapping = get_option('nordwebb_id_mapping', []);
 
+	nordwebb_log($id_mapping);
+	
     // Get the current chunk and total chunks from the AJAX request
     $current_chunk = isset($_POST['current_chunk']) ? intval($_POST['current_chunk']) : 0;
     $csv_data = get_option('nordwebb_csv_data', []);
+	$header = array_shift($csv_data);
+
+
+	
     $chunk_size = 10;
 
-    // Determine which phase we're in: processing variable products or variations
-    $variable_products = array_filter($csv_data, function ($row) {
-        return $row['Typ'] == 'variable';
-    });
+	// Convert each row of data to an associative array
+	$csv_data_assoc = array_map(function($row) use ($header) {
+		return array_combine($header, $row);
+	}, $csv_data);
 
-    $variations = array_filter($csv_data, function ($row) {
-        return $row['Typ'] == 'variation';
-    });
+	// Filter out variable products
+	$variable_products = array_filter($csv_data_assoc, function ($row) {
+		return $row['Typ'] == 'variable';
+	});
 
+	// Filter out variations
+	$variations = array_filter($csv_data_assoc, function ($row) {
+		return $row['Typ'] == 'variation';
+	});
+	
+	
     $total_variable_chunks = ceil(count($variable_products) / $chunk_size);
+
 
     if ($current_chunk <= $total_variable_chunks) {
  // We're in the variable products phase
  $current_data_chunk = array_slice($variable_products, ($current_chunk - 1) * $chunk_size, $chunk_size);
+		
+		
  foreach ($current_data_chunk as $row) {
+	 
+	 	nordwebb_log("1");
+	 
      $product_data = array_combine($header, $row);
-
+	 
+	 nordwebb_log("2");
+	 
      // Creating a variable product
      $product = new WC_Product_Variable();
      $product->set_name($product_data['Namn']);
@@ -70,6 +89,9 @@ function nordwebb_process_csv_chunk()
      $product->set_description($product_data['Beskrivning']); // Full product description
      $product->set_status('publish'); // Making the product published
      
+	 	 nordwebb_log($product);
+
+	 
      // Setting attributes for the variable product
      $attributes = array();
 
@@ -98,9 +120,14 @@ function nordwebb_process_csv_chunk()
      $product->set_attributes($attributes);
      $product_id = $product->save();
      
+	 
+	 	 	 nordwebb_log($product_id);
+	 
      // Store the mapping of original CSV ID to WordPress product ID
      $id_mapping[$product_data['ID']] = $product_id;
 
+	 	 	 	 nordwebb_log($id_mapping);
+	 
  }
 
     } else {
@@ -108,8 +135,11 @@ function nordwebb_process_csv_chunk()
     $adjusted_chunk = $current_chunk - $total_variable_chunks;
     $current_data_chunk = array_slice($variations, ($adjusted_chunk - 1) * $chunk_size, $chunk_size);
     foreach ($current_data_chunk as $row) {
+		nordwebb_log("3");
+		
         $product_data = array_combine($header, $row);
         
+		nordwebb_log("4");
         // Use the ID mapping to get the WooCommerce ID of the parent product
         $parent_id = $id_mapping[$product_data['Överordnad']];
         
