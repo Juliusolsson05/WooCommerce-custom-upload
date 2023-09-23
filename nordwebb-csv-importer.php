@@ -34,10 +34,16 @@ function nordwebb_process_csv_chunk()
         include_once(WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-product-factory.php');
     }
 	
+	
+	// Check if this is the first chunk, and if so, reset the ID mapping
+    if ($current_chunk == 1) {
+        update_option('nordwebb_id_mapping', []);
+    }
+	
     // Placeholder for mapping original variable product IDs from CSV to actual product IDs in WordPress
     $id_mapping = get_option('nordwebb_id_mapping', []);
 
-	nordwebb_log($id_mapping);
+	nordwebb_log(json_encode($id_mapping));
 	
     // Get the current chunk and total chunks from the AJAX request
     $current_chunk = isset($_POST['current_chunk']) ? intval($_POST['current_chunk']) : 0;
@@ -99,7 +105,7 @@ function nordwebb_process_csv_chunk()
      if (!empty($product_data['Attribut 1 namn']) && !empty($product_data['Attribut 1 värde(n)'])) {
          $attribute = new WC_Product_Attribute();
          $attribute->set_name($product_data['Attribut 1 namn']);
-         $attribute->set_options(explode('|', $product_data['Attribut 1 värde(n)'])); // Assuming '|' as delimiter for multiple values
+         $attribute->set_options(explode(',', $product_data['Attribut 1 värde(n)'])); // Assuming '|' as delimiter for multiple values
          $attribute->set_position(0);
          $attribute->set_visible(true);
          $attribute->set_variation(true);
@@ -110,7 +116,7 @@ function nordwebb_process_csv_chunk()
      if (!empty($product_data['Attribut 2 namn']) && !empty($product_data['Attribut 2 värde(n)'])) {
          $attribute = new WC_Product_Attribute();
          $attribute->set_name($product_data['Attribut 2 namn']);
-         $attribute->set_options(explode('|', $product_data['Attribut 2 värde(n)']));
+         $attribute->set_options(explode(',', $product_data['Attribut 2 värde(n)']));
          $attribute->set_position(1);
          $attribute->set_visible(true);
          $attribute->set_variation(true);
@@ -125,7 +131,7 @@ function nordwebb_process_csv_chunk()
 	 
      // Store the mapping of original CSV ID to WordPress product ID
      $id_mapping[$product_data['ID']] = $product_id;
-
+	update_option('nordwebb_id_mapping', $id_mapping);
 	 	 	 	 nordwebb_log($id_mapping);
 	 
  }
@@ -141,8 +147,10 @@ function nordwebb_process_csv_chunk()
         
 		nordwebb_log("4");
         // Use the ID mapping to get the WooCommerce ID of the parent product
-        $parent_id = $id_mapping[$product_data['Överordnad']];
+        $parent_id = $id_mapping[strval(intval(floatval($product_data['Överordnad'])))];
         
+		nordwebb_log(strval(intval(floatval($product_data['Överordnad']))));
+		
         // Create a new variation
         $variation = new WC_Product_Variation();
         $variation->set_parent_id($parent_id);
@@ -155,6 +163,9 @@ function nordwebb_process_csv_chunk()
         if (!empty($product_data['Attribut 2 namn']) && !empty($product_data['Attribut 2 värde(n)'])) {
             $attributes[$product_data['Attribut 2 namn']] = $product_data['Attribut 2 värde(n)'];
         }
+		
+		nordwebb_log($attributes);
+		
         $variation->set_attributes($attributes);
         
         // Set other details for this variation
