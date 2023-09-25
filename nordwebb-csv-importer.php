@@ -27,6 +27,22 @@ function nordwebb_csv_importer_menu()
     add_submenu_page('woocommerce', 'Nordwebb CSV Importer', 'CSV Importer', 'manage_options', 'nordwebb-csv-importer', 'nordwebb_csv_importer_page');
 }
 
+add_action('wp_ajax_nordwebb_get_csv_data', 'nordwebb_get_csv_data');
+
+function nordwebb_get_csv_data() {
+    // Get the CSV file path from the option
+    $csv_file_path = get_option('nordwebb_csv_file_path', '');
+    if ($csv_file_path && file_exists($csv_file_path)) {
+        // Read the CSV file and return the data
+        $csv_data = file_get_contents($csv_file_path);
+        echo $csv_data;
+    } else {
+        echo 'Error: CSV file not found.';
+    }
+    wp_die();
+}
+
+
 function nordwebb_process_csv_chunk()
 {
     // Include necessary WooCommerce classes and functions
@@ -46,7 +62,15 @@ function nordwebb_process_csv_chunk()
 
     // Get the current chunk and total chunks from the AJAX request
     $current_chunk = isset($_POST['current_chunk']) ? intval($_POST['current_chunk']) : 0;
-    $csv_data = get_option('nordwebb_csv_data', []);
+    // Get the CSV file path from the option
+    $csv_file_path = get_option('nordwebb_csv_file_path', '');
+    if ($csv_file_path) {
+        // Load the CSV data from the file
+        $csv_data = array_map('str_getcsv', file($csv_file_path));
+    } else {
+        $csv_data = [];
+    }
+
     $header = array_shift($csv_data);
 
     $chunk_size = 10;
